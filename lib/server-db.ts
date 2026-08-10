@@ -221,6 +221,11 @@ export async function readOrdersDB(): Promise<OrdersDBData> {
     }
   }
 
+  // Auto cleanup phone&role orders that are Done and older than 24 hours (1 day)
+  const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  let modified = false;
+
   // Clean up initial mock order if present
   if (db && Array.isArray(db.orders) && db.orders.some(o => o.id === 'ord_1770690000000')) {
     db.orders = db.orders.filter(o => o.id !== 'ord_1770690000000');
