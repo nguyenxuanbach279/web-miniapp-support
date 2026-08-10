@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "id": "usr_1786336501792",
+      "email": "nguyenxuanbach27092001@gmail.com",
+      "name": "Nguyễn Xuân Bách",
+      "role": "admin",
+      "status": "Active",
+      "avatarUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=Nguy%E1%BB%85n%20Xu%C3%A2n%20B%C3%A1ch",
+      "createdAt": "2026-08-10",
+      "lastLogin": "2026-08-10 13:50"
+    },
+    {
+      "id": "usr_admin_bach",
+      "email": "nguyenxuanbach270901@gmail.com",
+      "name": "Nguyễn Xuân Bách",
+      "role": "admin",
+      "status": "Active",
+      "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80",
+      "createdAt": "2026-08-10",
+      "lastLogin": "2026-08-10 12:34"
+    }
+  ],
+  "passwords": {
+    "nguyenxuanbach270901@gmail.com": "Bach270901@",
+    "nguyenxuanbach27092001@gmail.com": "Bach270901@"
+  }
+}
