@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { Redis } from '@upstash/redis';
 import { User, Role, UserStatus, Order, SSOItem, UserNotification } from './types';
 
 export interface DBData {
@@ -24,8 +25,26 @@ const ORDERS_DB_PATH = path.join(process.cwd(), 'data', 'orders.json');
 const SSO_DB_PATH = path.join(process.cwd(), 'data', 'sso.json');
 const NOTIF_DB_PATH = path.join(process.cwd(), 'data', 'notifications.json');
 
+// Initialize Redis if Upstash or Vercel KV environment variables are present
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+const redis = (redisUrl && redisToken)
+  ? new Redis({ url: redisUrl, token: redisToken })
+  : null;
+
 const DEFAULT_DB: DBData = {
   users: [
+    {
+      id: 'usr_1786336501792',
+      email: 'nguyenxuanbach27092001@gmail.com',
+      name: 'Nguyễn Xuân Bách',
+      role: 'admin',
+      status: 'Active',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nguy%E1%BB%85n%20Xu%C3%A2n%20B%C3%A1ch',
+      createdAt: '2026-08-10',
+      lastLogin: '2026-08-10 13:50'
+    },
     {
       id: 'usr_admin_bach',
       email: 'nguyenxuanbach270901@gmail.com',
@@ -34,11 +53,12 @@ const DEFAULT_DB: DBData = {
       status: 'Active',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
       createdAt: '2026-08-10',
-      lastLogin: '2026-08-10 08:59'
+      lastLogin: '2026-08-10 12:34'
     }
   ],
   passwords: {
-    'nguyenxuanbach270901@gmail.com': 'Bach270901@'
+    'nguyenxuanbach270901@gmail.com': 'Bach270901@',
+    'nguyenxuanbach27092001@gmail.com': 'Bach270901@'
   }
 };
 
@@ -73,17 +93,34 @@ const DEFAULT_SSO_DB: SSODBData = {
   ]
 };
 
+// --- USERS DB ---
 export async function readDB(): Promise<DBData> {
+  if (redis) {
+    try {
+      const data = await redis.get<DBData>('app_users');
+      if (data && Array.isArray(data.users)) {
+        let modified = false;
+        if (!data.users.some(u => u.email.toLowerCase() === 'nguyenxuanbach270901@gmail.com')) {
+          data.users.unshift(DEFAULT_DB.users[1]);
+          data.passwords['nguyenxuanbach270901@gmail.com'] = 'Bach270901@';
+          modified = true;
+        }
+        if (!data.users.some(u => u.email.toLowerCase() === 'nguyenxuanbach27092001@gmail.com')) {
+          data.users.unshift(DEFAULT_DB.users[0]);
+          data.passwords['nguyenxuanbach27092001@gmail.com'] = 'Bach270901@';
+          modified = true;
+        }
+        if (modified) await writeDB(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('Error reading from Redis (users):', err);
+    }
+  }
+
   try {
     const dataStr = await fs.readFile(DB_PATH, 'utf-8');
     const parsed: DBData = JSON.parse(dataStr);
-
-    if (!parsed.users.some(u => u.email.toLowerCase() === 'nguyenxuanbach270901@gmail.com')) {
-      parsed.users.unshift(DEFAULT_DB.users[0]);
-      parsed.passwords['nguyenxuanbach270901@gmail.com'] = 'Bach270901@';
-      await writeDB(parsed);
-    }
-
     return parsed;
   } catch (error) {
     await writeDB(DEFAULT_DB);
@@ -92,62 +129,105 @@ export async function readDB(): Promise<DBData> {
 }
 
 export async function writeDB(data: DBData): Promise<void> {
+  if (redis) {
+    try {
+      await redis.set('app_users', data);
+    } catch (err) {
+      console.error('Error writing to Redis (users):', err);
+    }
+  }
+
   const dir = path.dirname(DB_PATH);
   try {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing server database:', err);
+    // Ignore read-only fs error on Vercel
   }
 }
 
+// --- ORDERS DB ---
 export async function readOrdersDB(): Promise<OrdersDBData> {
-  try {
-    const dataStr = await fs.readFile(ORDERS_DB_PATH, 'utf-8');
-    const db: OrdersDBData = JSON.parse(dataStr);
+  let db: OrdersDBData | null = null;
 
-    // Auto cleanup phone&role orders that are Done and older than 24 hours (1 day)
-    const now = Date.now();
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    let modified = false;
-
-    const remainingOrders = db.orders.filter(order => {
-      const isPhoneRole = (order.type || 'phone&role') === 'phone&role';
-      const isDone = order.status === 'Done';
-
-      if (isPhoneRole && isDone && order.completedAt) {
-        const completedMs = new Date(order.completedAt).getTime();
-        if (!isNaN(completedMs) && (now - completedMs >= ONE_DAY_MS)) {
-          modified = true;
-          return false; // Automatically delete this done phone&role order
-        }
-      }
-      return true;
-    });
-
-    if (modified) {
-      db.orders = remainingOrders;
-      await writeOrdersDB(db);
+  if (redis) {
+    try {
+      db = await redis.get<OrdersDBData>('app_orders');
+    } catch (err) {
+      console.error('Error reading from Redis (orders):', err);
     }
-
-    return db;
-  } catch (error) {
-    await writeOrdersDB(DEFAULT_ORDERS_DB);
-    return DEFAULT_ORDERS_DB;
   }
+
+  if (!db) {
+    try {
+      const dataStr = await fs.readFile(ORDERS_DB_PATH, 'utf-8');
+      db = JSON.parse(dataStr);
+    } catch (error) {
+      db = DEFAULT_ORDERS_DB;
+      await writeOrdersDB(DEFAULT_ORDERS_DB);
+    }
+  }
+
+  if (!db || !Array.isArray(db.orders)) {
+    db = DEFAULT_ORDERS_DB;
+  }
+
+  // Auto cleanup phone&role orders that are Done and older than 24 hours (1 day)
+  const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  let modified = false;
+
+  const remainingOrders = db.orders.filter(order => {
+    const isPhoneRole = (order.type || 'phone&role') === 'phone&role';
+    const isDone = order.status === 'Done';
+
+    if (isPhoneRole && isDone && order.completedAt) {
+      const completedMs = new Date(order.completedAt).getTime();
+      if (!isNaN(completedMs) && (now - completedMs >= ONE_DAY_MS)) {
+        modified = true;
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (modified) {
+    db.orders = remainingOrders;
+    await writeOrdersDB(db);
+  }
+
+  return db;
 }
 
 export async function writeOrdersDB(data: OrdersDBData): Promise<void> {
+  if (redis) {
+    try {
+      await redis.set('app_orders', data);
+    } catch (err) {
+      console.error('Error writing to Redis (orders):', err);
+    }
+  }
+
   const dir = path.dirname(ORDERS_DB_PATH);
   try {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(ORDERS_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing orders database:', err);
+    // Ignore read-only fs error on Vercel
   }
 }
 
+// --- SSO DB ---
 export async function readSSODB(): Promise<SSODBData> {
+  if (redis) {
+    try {
+      const db = await redis.get<SSODBData>('app_sso');
+      if (db && Array.isArray(db.ssoItems)) return db;
+    } catch (err) {
+      console.error('Error reading from Redis (sso):', err);
+    }
+  }
+
   try {
     const dataStr = await fs.readFile(SSO_DB_PATH, 'utf-8');
     return JSON.parse(dataStr);
@@ -158,60 +238,91 @@ export async function readSSODB(): Promise<SSODBData> {
 }
 
 export async function writeSSODB(data: SSODBData): Promise<void> {
+  if (redis) {
+    try {
+      await redis.set('app_sso', data);
+    } catch (err) {
+      console.error('Error writing to Redis (sso):', err);
+    }
+  }
+
   const dir = path.dirname(SSO_DB_PATH);
   try {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(SSO_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing SSO database:', err);
+    // Ignore read-only fs error on Vercel
   }
 }
 
+// --- NOTIFICATIONS DB ---
 export async function readNotificationsDB(): Promise<NotificationsDBData> {
-  try {
-    const dataStr = await fs.readFile(NOTIF_DB_PATH, 'utf-8');
-    const db: NotificationsDBData = JSON.parse(dataStr);
+  let db: NotificationsDBData | null = null;
 
-    // Auto-delete notifications older than 7 days (1 week)
-    const now = Date.now();
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const originalCount = db.notifications.length;
-
-    db.notifications = db.notifications.filter(n => {
-      let createdMs = 0;
-      if (n.id && n.id.startsWith('notif_')) {
-        const parts = n.id.split('_');
-        if (parts[1]) {
-          const ts = parseInt(parts[1], 10);
-          if (!isNaN(ts) && ts > 1600000000000) createdMs = ts;
-        }
-      }
-      if (!createdMs && n.createdAt) {
-        const parsed = new Date(n.createdAt).getTime();
-        if (!isNaN(parsed)) createdMs = parsed;
-      }
-      if (createdMs > 0 && (now - createdMs >= ONE_WEEK_MS)) return false;
-      return true;
-    });
-
-    if (db.notifications.length !== originalCount) {
-      await writeNotificationsDB(db);
+  if (redis) {
+    try {
+      db = await redis.get<NotificationsDBData>('app_notifications');
+    } catch (err) {
+      console.error('Error reading from Redis (notifications):', err);
     }
-
-    return db;
-  } catch (error) {
-    const defaultData: NotificationsDBData = { notifications: [] };
-    await writeNotificationsDB(defaultData);
-    return defaultData;
   }
+
+  if (!db) {
+    try {
+      const dataStr = await fs.readFile(NOTIF_DB_PATH, 'utf-8');
+      db = JSON.parse(dataStr);
+    } catch (error) {
+      db = { notifications: [] };
+    }
+  }
+
+  if (!db || !Array.isArray(db.notifications)) {
+    db = { notifications: [] };
+  }
+
+  // Auto-delete notifications older than 7 days (1 week)
+  const now = Date.now();
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const originalCount = db.notifications.length;
+
+  db.notifications = db.notifications.filter(n => {
+    let createdMs = 0;
+    if (n.id && n.id.startsWith('notif_')) {
+      const parts = n.id.split('_');
+      if (parts[1]) {
+        const ts = parseInt(parts[1], 10);
+        if (!isNaN(ts) && ts > 1600000000000) createdMs = ts;
+      }
+    }
+    if (!createdMs && n.createdAt) {
+      const parsed = new Date(n.createdAt).getTime();
+      if (!isNaN(parsed)) createdMs = parsed;
+    }
+    if (createdMs > 0 && (now - createdMs >= ONE_WEEK_MS)) return false;
+    return true;
+  });
+
+  if (db.notifications.length !== originalCount) {
+    await writeNotificationsDB(db);
+  }
+
+  return db;
 }
 
 export async function writeNotificationsDB(data: NotificationsDBData): Promise<void> {
+  if (redis) {
+    try {
+      await redis.set('app_notifications', data);
+    } catch (err) {
+      console.error('Error writing to Redis (notifications):', err);
+    }
+  }
+
   const dir = path.dirname(NOTIF_DB_PATH);
   try {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(NOTIF_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing notifications database:', err);
+    // Ignore read-only fs error on Vercel
   }
 }

@@ -1,3 +1,13 @@
 {
-  "ssoItems": []
+  "ssoItems": [
+    {
+      "id": "sso_1770690000000",
+      "clientId": "super-app-client",
+      "appId": "1512079453994241503232",
+      "appName": "quản lý thiết bị poc",
+      "internalId": "12312312321312312",
+      "clientSecret": "12321321312312312",
+      "createdAt": "2026-08-10 10:00"
+    }
+  ]
 }

@@ -1,3 +1,16 @@
 {
-  "orders": []
+  "orders": [
+    {
+      "id": "ord_1770690000000",
+      "userId": "usr_admin_bach",
+      "userEmail": "nguyenxuanbach270901@gmail.com",
+      "userName": "Nguyễn Xuân Bách",
+      "type": "phone&role",
+      "rawText": "Đăng ký số điện thoại 0972390426 với quyền full",
+      "detectedPhone": "0972390426",
+      "phoneRole": "full",
+      "status": "Pending",
+      "createdAt": "2026-08-10 09:30"
+    }
+  ]
 }
