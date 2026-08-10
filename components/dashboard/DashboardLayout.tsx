@@ -32,9 +32,11 @@ import {
   Eye
 } from 'lucide-react';
 
+import { translations } from '@/lib/translations';
+
 export const DashboardLayout: React.FC = () => {
   const { currentUser, users, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'approval' | 'phone-roles' | 'orders' | 'sso-registry' | 'profile' | 'settings'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -47,6 +49,22 @@ export const DashboardLayout: React.FC = () => {
   // Order Detail Modal state
   const [selectedOrderForModal, setSelectedOrderForModal] = useState<Order | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Update Web document.title to strictly be the active menu name translated in active language
+  useEffect(() => {
+    const tabMap: Record<typeof activeTab, keyof typeof translations.en> = {
+      'overview': 'overviewTab',
+      'members': 'memberManagementTab',
+      'approval': 'approvalTab',
+      'phone-roles': 'phoneRolesTab',
+      'orders': 'ordersTab',
+      'sso-registry': 'ssoRegistryTab',
+      'profile': 'profileTab',
+      'settings': 'settingsTab',
+    };
+    const titleKey = tabMap[activeTab] || 'overviewTab';
+    document.title = t(titleKey);
+  }, [activeTab, language, t]);
 
   useEffect(() => {
     if (!currentUser) return;

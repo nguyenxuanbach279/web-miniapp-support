@@ -7,6 +7,7 @@ interface AuthContextType {
   currentUser: User | null;
   users: User[];
   loadingUsers: boolean;
+  initializing: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; code?: string; message: string }>;
   register: (name: string, email: string, pass: string, role?: Role) => Promise<{ success: boolean; message: string }>;
   forgotPassword: (email: string, newPass: string) => Promise<{ success: boolean; message: string }>;
@@ -22,8 +23,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedSession = localStorage.getItem('app_current_user');
+        if (storedSession) {
+          return JSON.parse(storedSession);
+        }
+      } catch (e) {
+        console.error('Error reading initial session:', e);
+      }
+    }
+    return null;
+  });
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [initializing, setInitializing] = useState(true);
 
   // Fetch users from Server Backend API
   const refreshUsers = async () => {
@@ -44,14 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initial load
   useEffect(() => {
     refreshUsers();
-    try {
-      const storedSession = localStorage.getItem('app_current_user');
-      if (storedSession) {
-        setCurrentUser(JSON.parse(storedSession));
-      }
-    } catch (e) {
-      console.error('Error reading session:', e);
-    }
+    setInitializing(false);
   }, []);
 
   // Save session state locally
@@ -217,6 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         users,
         loadingUsers,
+        initializing,
         login,
         register,
         forgotPassword,

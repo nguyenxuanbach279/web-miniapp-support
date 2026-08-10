@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
@@ -12,7 +12,17 @@ import { LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 export const AuthCard: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('login');
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+
+  useEffect(() => {
+    const authTitles: Record<AuthMode, string> = {
+      login: t('loginTitle'),
+      register: t('registerTitle'),
+      forgot: t('forgotTitle'),
+      pending: t('approvalTab'),
+    };
+    document.title = authTitles[mode] || t('loginTitle');
+  }, [mode, language, t]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 text-slate-100 p-4 relative overflow-hidden">

@@ -73,10 +73,11 @@ export async function GET(request: Request) {
     const ssoOrders = orders.filter(o => o.type === 'sso');
     const phoneOrders = orders.filter(o => (o.type || 'phone&role') === 'phone&role');
 
-    // --- SSO items: { type, clientId, miniappId, miniappName } ---
+    // --- SSO items: { orderId, type, clientId, miniappId, miniappName } ---
     const ssoItems = ssoOrders.map(o => {
       const { appName, appId, clientId } = getSSOExportFields(o);
       return {
+        orderId: o.id,
         type: 'sso',
         clientId: clientId || o.clientId || '-',
         miniappId: appId || o.appId || '-',
@@ -97,6 +98,7 @@ export async function GET(request: Request) {
       for (const phone of phones) {
         if (!phoneMap.has(phone)) {
           phoneMap.set(phone, {
+            orderId: o.id,
             type: 'phone&role',
             phoneNumber: phone,
             role: o.phoneRole

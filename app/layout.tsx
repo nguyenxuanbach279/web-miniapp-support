@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Enterprise Dashboard - User & Admin Member Management",
+  title: "MiniApp Support",
   description: "Trang web quản trị phân quyền với tính năng Đăng nhập, Đăng ký mật khẩu mạnh, Quên mật khẩu, Phone & Roles, SSO Registry và Member Management.",
 };
 

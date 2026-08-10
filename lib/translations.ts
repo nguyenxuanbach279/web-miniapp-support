@@ -96,6 +96,7 @@ export const translations = {
     // Navigation & Dashboard Header
     overviewTab: 'Overview',
     memberManagementTab: 'Member Management',
+    approvalTab: 'User Approval',
     phoneRolesTab: 'Phone & Roles',
     ordersTab: 'Orders',
     ssoRegistryTab: 'SSO Registry',
@@ -376,6 +377,7 @@ export const translations = {
     // Navigation & Dashboard Header
     overviewTab: 'Tổng quan',
     memberManagementTab: 'Member Management',
+    approvalTab: 'Duyệt người dùng',
     phoneRolesTab: 'Phone & Roles',
     ordersTab: 'Đơn hàng',
     ssoRegistryTab: 'SSO Registry',
