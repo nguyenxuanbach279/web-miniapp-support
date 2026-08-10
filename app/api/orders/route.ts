@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       message: 'Phone & Role order created successfully!'
     });
   } catch (error) {
+    console.error('Error creating order:', error);
     return NextResponse.json({ success: false, message: 'Server error while creating order!' }, { status: 500 });
   }
 }
