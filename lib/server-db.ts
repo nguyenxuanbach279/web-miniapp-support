@@ -43,10 +43,14 @@ async function getSupabaseData<T>(key: string): Promise<T | null> {
       .eq('key', key)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error(`[Supabase Error] Read key "${key}" failed:`, error.message || error);
+      return null;
+    }
+    if (!data) return null;
     return data.data as T;
   } catch (err) {
-    console.error(`Error reading from Supabase (${key}):`, err);
+    console.error(`[Supabase Error] Exception reading key "${key}":`, err);
     return null;
   }
 }
@@ -54,11 +58,15 @@ async function getSupabaseData<T>(key: string): Promise<T | null> {
 async function setSupabaseData<T>(key: string, data: T): Promise<void> {
   if (!supabase) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from('app_store')
       .upsert({ key, data, updated_at: new Date().toISOString() });
+
+    if (error) {
+      console.error(`[Supabase Error] Write key "${key}" failed:`, error.message || error);
+    }
   } catch (err) {
-    console.error(`Error writing to Supabase (${key}):`, err);
+    console.error(`[Supabase Error] Exception writing key "${key}":`, err);
   }
 }
 
