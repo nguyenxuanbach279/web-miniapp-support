@@ -18,8 +18,8 @@ export const AuthCard: React.FC = () => {
     const authTitles: Record<AuthMode, string> = {
       login: t('loginTitle'),
       register: t('registerTitle'),
-      forgot: t('forgotTitle'),
-      pending: t('approvalTab'),
+      'forgot-password': t('forgotTitle'),
+      'pending-approval': t('approvalTab'),
     };
     document.title = authTitles[mode] || t('loginTitle');
   }, [mode, language, t]);
