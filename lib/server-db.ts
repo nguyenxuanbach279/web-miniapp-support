@@ -109,20 +109,7 @@ const DEFAULT_DB: DBData = {
 };
 
 const DEFAULT_ORDERS_DB: OrdersDBData = {
-  orders: [
-    {
-      id: 'ord_1770690000000',
-      userId: 'usr_admin_bach',
-      userEmail: 'nguyenxuanbach270901@gmail.com',
-      userName: 'Nguyễn Xuân Bách',
-      type: 'phone&role',
-      rawText: 'Đăng ký số điện thoại 0972390426 với quyền full',
-      detectedPhone: '0972390426',
-      phoneRole: 'full',
-      status: 'Pending',
-      createdAt: '2026-08-10 09:30'
-    }
-  ]
+  orders: []
 };
 
 const DEFAULT_SSO_DB: SSODBData = {
@@ -234,10 +221,11 @@ export async function readOrdersDB(): Promise<OrdersDBData> {
     }
   }
 
-  // Auto cleanup phone&role orders that are Done and older than 24 hours (1 day)
-  const now = Date.now();
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-  let modified = false;
+  // Clean up initial mock order if present
+  if (db && Array.isArray(db.orders) && db.orders.some(o => o.id === 'ord_1770690000000')) {
+    db.orders = db.orders.filter(o => o.id !== 'ord_1770690000000');
+    modified = true;
+  }
 
   const remainingOrders = db.orders.filter(order => {
     const isPhoneRole = (order.type || 'phone&role') === 'phone&role';
