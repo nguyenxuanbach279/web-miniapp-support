@@ -44,12 +44,6 @@ export const PendingApprovalView: React.FC<PendingApprovalViewProps> = ({ onSwit
         <p className="text-[11px] text-slate-300">
           Vui lòng trao đổi trực tiếp với Quản trị viên (Admin) của hệ thống để tài khoản của bạn được phê duyệt vào sử dụng.
         </p>
-        <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 text-[11px] text-slate-400 font-mono">
-          <span className="flex items-center gap-1">
-            <Mail className="w-3.5 h-3.5 text-amber-400" />
-            nguyenxuanbach270901@gmail.com
-          </span>
-        </div>
       </div>
 
       {/* Action button */}
