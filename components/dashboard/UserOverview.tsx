@@ -4,6 +4,7 @@ import React from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { Sparkles, Clock, ShieldCheck, UserCheck, Phone, ArrowRight, ShieldAlert } from 'lucide-react';
+import { InstallLinksView } from './InstallLinksView';
 
 interface UserOverviewProps {
   onNavigateToPhoneRoles?: () => void;
@@ -19,7 +20,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
 
   if (!currentUser) return null;
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
 
   return (
     <div className="space-y-6">
@@ -43,7 +44,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               <div className="flex items-center gap-2 mt-2">
                 {isAdmin ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5" /> {t('adminRoleBadge')}
+                    <ShieldCheck className="w-3.5 h-3.5" /> {currentUser.role === 'super_admin' ? 'Super Admin' : t('adminRoleBadge')}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-bold rounded-full">
@@ -67,6 +68,9 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Block: Install Files & Version Links (Xem file cài đặt) */}
+      <InstallLinksView compact />
 
       {/* Feature Section Header */}
       <div className="space-y-4 pt-2">

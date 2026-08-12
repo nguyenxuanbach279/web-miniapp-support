@@ -75,23 +75,12 @@ export async function POST(request: Request) {
       ? cleanAppName
       : `${cleanAppName} ${envSuffix}`;
 
-    const newSSO: SSOItem = {
-      id: `sso_${Date.now()}`,
-      clientId: clientId.trim(),
-      appId: appId.trim(),
-      appName: fullAppName,
-      internalId: Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString(),
-      clientSecret: Array.from({ length: 16 }, () => Math.floor(Math.random() * 10)).join(''),
-      createdAt: getUTC7Timestamp()
-    };
-
-    db.ssoItems.unshift(newSSO);
-    await writeSSODB(db);
-
-    // Also create 1 Order in orders.json
+    // Note: Per requirements, registering an SSO order does NOT automatically add it to the ssoItems list.
+    // The SSO items list ONLY changes when super admin updates it in System Settings.
+    let createdOrder: Order | null = null;
     try {
       const ordersDb = await readOrdersDB();
-      const newOrder: Order = {
+      createdOrder = {
         id: `ord_${Date.now()}`,
         userId: userId || 'usr_admin_bach',
         userEmail: userEmail || 'nguyenxuanbach270901@gmail.com',
@@ -106,7 +95,7 @@ export async function POST(request: Request) {
         status: 'Pending',
         createdAt: getUTC7Timestamp()
       };
-      ordersDb.orders.unshift(newOrder);
+      ordersDb.orders.unshift(createdOrder);
       await writeOrdersDB(ordersDb);
     } catch (orderErr) {
       console.error('Error creating corresponding order for SSO registration:', orderErr);
@@ -114,8 +103,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      ssoItem: newSSO,
-      message: 'SSO Registered successfully!'
+      order: createdOrder,
+      message: 'Yêu cầu đăng ký SSO đã tạo đơn thành công!'
     });
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Server error registering SSO' }, { status: 500 });

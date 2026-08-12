@@ -29,13 +29,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpe
 
   const isSSO = order.type === 'sso';
 
-  const statusLabel = () => {
-    if (order.status === 'Done') return t('statusDone');
-    if (order.status === 'Pending') return t('statusPending');
-    if (order.status === 'Approved') return t('statusApproved');
-    if (order.status === 'Rejected') return t('statusRejected');
-    return order.status;
-  };
+  const statusLabel = () => order.status;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">

@@ -14,6 +14,7 @@ import { SystemSettings } from './SystemSettings';
 import { UserNotification, Order } from '@/lib/types';
 import { useToast } from '@/lib/toast-context';
 import { OrderDetailModal } from './OrderDetailModal';
+import { InstallLinksView } from './InstallLinksView';
 import {
   LayoutDashboard,
   Users,
@@ -29,7 +30,8 @@ import {
   ShoppingBag,
   ShieldCheck,
   CheckCheck,
-  Eye
+  Eye,
+  Smartphone
 } from 'lucide-react';
 
 import { translations } from '@/lib/translations';
@@ -38,7 +40,7 @@ export const DashboardLayout: React.FC = () => {
   const { currentUser, users, logout } = useAuth();
   const { t, language } = useLanguage();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'approval' | 'phone-roles' | 'orders' | 'sso-registry' | 'profile' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'approval' | 'phone-roles' | 'orders' | 'sso-registry' | 'profile' | 'settings' | 'install-links'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -61,6 +63,7 @@ export const DashboardLayout: React.FC = () => {
       'sso-registry': 'ssoRegistryTab',
       'profile': 'profileTab',
       'settings': 'settingsTab',
+      'install-links': 'installLinksTab',
     };
     const titleKey = tabMap[activeTab] || 'overviewTab';
     document.title = t(titleKey);
@@ -149,7 +152,7 @@ export const DashboardLayout: React.FC = () => {
 
   if (!currentUser) return null;
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
   const pendingCount = users.filter(u => u.status === 'Pending').length;
   const unreadNotifCount = notifications.filter(n => !n.read).length;
 
@@ -252,6 +255,21 @@ export const DashboardLayout: React.FC = () => {
             >
               <ShoppingBag className="w-4 h-4 text-purple-400" />
               {t('ordersTab')}
+            </button>
+
+            {/* 4.5. Install Files & Versions */}
+            <button
+              onClick={() => {
+                setActiveTab('install-links');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition cursor-pointer ${activeTab === 'install-links'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
+                : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
+                }`}
+            >
+              <Smartphone className="w-4 h-4 text-emerald-400" />
+              {t('installLinksTab')}
             </button>
 
             {/* 5. MEMBER MANAGEMENT (Admin Only) */}
@@ -357,6 +375,7 @@ export const DashboardLayout: React.FC = () => {
                 {activeTab === 'phone-roles' && t('phoneRolesTab')}
                 {activeTab === 'orders' && t('ordersTab')}
                 {activeTab === 'sso-registry' && t('ssoRegistryTab')}
+                {activeTab === 'install-links' && t('installLinksTab')}
                 {activeTab === 'members' && t('memberManagementTab')}
                 {activeTab === 'profile' && t('profileTab')}
                 {activeTab === 'settings' && t('settingsTab')}
@@ -502,6 +521,7 @@ export const DashboardLayout: React.FC = () => {
             <OrdersManagement onNavigateToCreate={() => setActiveTab('phone-roles')} />
           )}
           {activeTab === 'sso-registry' && <SSORegistry />}
+          {activeTab === 'install-links' && <InstallLinksView />}
           {activeTab === 'members' && (isAdmin ? <MemberManagement /> : <UserOverview onNavigateToPhoneRoles={() => setActiveTab('phone-roles')} onNavigateToSSORegistry={() => setActiveTab('sso-registry')} />)}
           {activeTab === 'profile' && (
             <UserOverview

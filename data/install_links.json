@@ -1,0 +1,16 @@
+{
+  "installLinks": [
+    {
+      "id": "link_1",
+      "title": "File cài Staging Android",
+      "urlOrVersion": "https://bac.staging.example.com/app-staging.apk",
+      "updatedAt": "2026-08-12 10:13"
+    },
+    {
+      "id": "link_2",
+      "title": "Bản cài IOS Staging",
+      "urlOrVersion": "IOS 1.2.3(100)",
+      "updatedAt": "2026-08-12 10:00"
+    }
+  ]
+}

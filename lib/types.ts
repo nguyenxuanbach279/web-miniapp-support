@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'user';
+export type Role = 'super_admin' | 'admin' | 'user';
 export type UserStatus = 'Active' | 'InActive' | 'Pending';
 
 export interface User {
@@ -67,4 +67,12 @@ export interface SSOItem {
   internalId: string;
   clientSecret: string;
   createdAt: string;
+}
+
+// App Installation Links type
+export interface InstallLinkItem {
+  id: string;
+  title: string;
+  urlOrVersion: string;
+  updatedAt: string;
 }

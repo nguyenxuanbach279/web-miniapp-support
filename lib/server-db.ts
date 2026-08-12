@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Redis } from '@upstash/redis';
 import { createClient } from '@supabase/supabase-js';
-import { User, Role, UserStatus, Order, SSOItem, UserNotification } from './types';
+import { User, Role, UserStatus, Order, SSOItem, UserNotification, InstallLinkItem } from './types';
 
 export interface DBData {
   users: User[];
@@ -21,10 +21,15 @@ export interface NotificationsDBData {
   notifications: UserNotification[];
 }
 
+export interface InstallLinksDBData {
+  installLinks: InstallLinkItem[];
+}
+
 const DB_PATH = path.join(process.cwd(), 'data', 'users.json');
 const ORDERS_DB_PATH = path.join(process.cwd(), 'data', 'orders.json');
 const SSO_DB_PATH = path.join(process.cwd(), 'data', 'sso.json');
 const NOTIF_DB_PATH = path.join(process.cwd(), 'data', 'notifications.json');
+const INSTALL_LINKS_DB_PATH = path.join(process.cwd(), 'data', 'install_links.json');
 
 // --- SUPABASE CLIENT ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -93,7 +98,7 @@ const DEFAULT_DB: DBData = {
       id: 'usr_1786336501792',
       email: 'nguyenxuanbach27092001@gmail.com',
       name: 'Nguyễn Xuân Bách',
-      role: 'admin',
+      role: 'super_admin',
       status: 'Active',
       avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nguy%E1%BB%85n%20Xu%C3%A2n%20B%C3%A1ch',
       createdAt: '2026-08-10',
@@ -103,7 +108,7 @@ const DEFAULT_DB: DBData = {
       id: 'usr_admin_bach',
       email: 'nguyenxuanbach270901@gmail.com',
       name: 'Nguyễn Xuân Bách',
-      role: 'admin',
+      role: 'super_admin',
       status: 'Active',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
       createdAt: '2026-08-10',
@@ -130,6 +135,23 @@ const DEFAULT_SSO_DB: SSODBData = {
       internalId: '12312312321312312',
       clientSecret: '12321321312312312',
       createdAt: '2026-08-10 10:00'
+    }
+  ]
+};
+
+const DEFAULT_INSTALL_LINKS_DB: InstallLinksDBData = {
+  installLinks: [
+    {
+      id: 'link_1',
+      title: 'File cài Staging Android',
+      urlOrVersion: 'https://bac.staging.example.com/app-staging.apk',
+      updatedAt: '2026-08-12 10:00'
+    },
+    {
+      id: 'link_2',
+      title: 'Bản cài IOS Staging',
+      urlOrVersion: 'IOS 1.2.3(100)',
+      updatedAt: '2026-08-12 10:00'
     }
   ]
 };
@@ -408,6 +430,58 @@ export async function writeNotificationsDB(data: NotificationsDBData): Promise<v
   try {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(NOTIF_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    // Ignore read-only fs error on Vercel
+  }
+}
+
+// --- INSTALL LINKS DB ---
+export async function readInstallLinksDB(): Promise<InstallLinksDBData> {
+  let db: InstallLinksDBData | null = await getSupabaseData<InstallLinksDBData>('app_install_links');
+
+  if (!db && redis) {
+    try {
+      db = await redis.get<InstallLinksDBData>('app_install_links');
+    } catch (err) {
+      console.error('Error reading from Redis (install_links):', err);
+    }
+  }
+
+  if (!db || !Array.isArray(db.installLinks)) {
+    try {
+      const dataStr = await fs.readFile(INSTALL_LINKS_DB_PATH, 'utf-8');
+      db = JSON.parse(dataStr);
+    } catch (error) {
+      db = DEFAULT_INSTALL_LINKS_DB;
+    }
+    if (!db || !Array.isArray(db.installLinks)) {
+      db = DEFAULT_INSTALL_LINKS_DB;
+    }
+    if (supabase) await setSupabaseData('app_install_links', db);
+    if (redis) {
+      try { await redis.set('app_install_links', db); } catch {}
+    }
+  }
+
+  return db;
+}
+
+export async function writeInstallLinksDB(data: InstallLinksDBData): Promise<void> {
+  if (supabase) {
+    await setSupabaseData('app_install_links', data);
+  }
+  if (redis) {
+    try {
+      await redis.set('app_install_links', data);
+    } catch (err) {
+      console.error('Error writing to Redis (install_links):', err);
+    }
+  }
+
+  const dir = path.dirname(INSTALL_LINKS_DB_PATH);
+  try {
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(INSTALL_LINKS_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
     // Ignore read-only fs error on Vercel
   }

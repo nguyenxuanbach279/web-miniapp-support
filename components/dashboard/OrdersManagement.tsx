@@ -508,7 +508,7 @@ export const OrdersManagement: React.FC<OrdersManagementProps> = ({ onNavigateTo
                               ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
                               : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
                           }`}>
-                          {order.status === 'Done' ? t('statusDone') : order.status}
+                          {order.status}
                         </span>
                       </td>
 

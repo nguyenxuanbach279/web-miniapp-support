@@ -14,7 +14,7 @@ export const SSORegistry: React.FC = () => {
   const [subTab, setSubTab] = useState<'register' | 'list'>('register');
   const [showGuide, setShowGuide] = useState(false);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   useEffect(() => {
     const hideGuide = localStorage.getItem('hide_sso_guide');
@@ -70,8 +70,8 @@ export const SSORegistry: React.FC = () => {
             {t('ssoSubTabRegister')}
           </button>
 
-          {/* Sub-tab 2: Admin SSO List — only for admin */}
-          {isAdmin && (
+          {/* Sub-tab 2: Admin SSO List — only for super_admin */}
+          {isSuperAdmin && (
             <button
               onClick={() => setSubTab('list')}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
@@ -89,10 +89,10 @@ export const SSORegistry: React.FC = () => {
 
       {/* Sub-tab Content Rendering */}
       {subTab === 'register' && (
-        <FormSSORegistration onNavigateToList={() => isAdmin ? setSubTab('list') : undefined} />
+        <FormSSORegistration onNavigateToList={() => isSuperAdmin ? setSubTab('list') : undefined} />
       )}
 
-      {subTab === 'list' && isAdmin && (
+      {subTab === 'list' && isSuperAdmin && (
         <AdminSSOList onNavigateToRegister={() => setSubTab('register')} />
       )}
     </div>
