@@ -7,8 +7,9 @@ export async function GET() {
   try {
     const db = await readDB();
     return NextResponse.json({ success: true, users: db.users });
-  } catch (error) {
-    return NextResponse.json({ success: false, message: 'Lỗi khi lấy danh sách người dùng!' }, { status: 500 });
+  } catch (error: any) {
+    console.error('GET /api/users error:', error);
+    return NextResponse.json({ success: false, message: 'Lỗi khi lấy danh sách người dùng!', debug: error?.message || String(error) }, { status: 500 });
   }
 }
 
