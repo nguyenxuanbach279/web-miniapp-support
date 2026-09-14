@@ -184,6 +184,11 @@ export async function readDB(): Promise<DBData> {
     }
   }
 
+  // Ensure passwords object exists (may be missing if data came from external source)
+  if (!db.passwords || typeof db.passwords !== 'object') {
+    db.passwords = {};
+  }
+
   let modified = false;
   if (!db.users.some(u => u.email.toLowerCase() === 'nguyenxuanbach270901@gmail.com')) {
     db.users.unshift(DEFAULT_DB.users[1]);
