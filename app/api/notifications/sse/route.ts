@@ -38,19 +38,29 @@ export async function GET(request: Request) {
 
       notificationEmitter.on('notification', listener);
 
-      // 3. Heartbeat ping every 25s to keep connection open
+      // 3. Heartbeat ping every 15s to keep connection alive
       const interval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: ping\n\n`));
         } catch (e) {
           clearInterval(interval);
         }
-      }, 25000);
+      }, 15000);
+
+      // Auto close stream after 40s to prevent Vercel Serverless Function hanging & quota exhaustion
+      const timeout = setTimeout(() => {
+        try {
+          notificationEmitter.removeListener('notification', listener);
+          clearInterval(interval);
+          controller.close();
+        } catch {}
+      }, 40000);
 
       // Cleanup on client disconnect / abort
       request.signal.addEventListener('abort', () => {
         notificationEmitter.removeListener('notification', listener);
         clearInterval(interval);
+        clearTimeout(timeout);
       });
     }
   });

@@ -3,6 +3,7 @@ import { readOrdersDB, writeOrdersDB } from '@/lib/server-db';
 import { Order, PhoneRole } from '@/lib/types';
 import { extractAllPhoneNumbers } from '@/lib/phone-utils';
 import { getUTC7Timestamp } from '@/lib/date-utils';
+import { broadcastNewOrder } from '@/lib/realtime';
 
 export async function GET(request: Request) {
   try {
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
     const db = await readOrdersDB();
     db.orders.unshift(newOrder);
     await writeOrdersDB(db);
+
+    // Broadcast new order to mobile apps via Supabase Realtime (non-blocking)
+    broadcastNewOrder(newOrder).catch(err => console.error('Error broadcasting new order:', err));
 
     return NextResponse.json({
       success: true,

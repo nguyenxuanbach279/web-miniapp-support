@@ -3,6 +3,7 @@ import { readOrdersDB, writeOrdersDB, readNotificationsDB, writeNotificationsDB,
 import { getUTC7Timestamp } from '@/lib/date-utils';
 import { UserNotification } from '@/lib/types';
 import { notificationEmitter } from '@/lib/event-bus';
+import { broadcastOrderCompleted, broadcastNotification } from '@/lib/realtime';
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -100,6 +101,10 @@ export async function POST(request: Request) {
           userId: order.userId,
           notification: notif
         });
+
+        // Broadcast to Supabase Realtime (for mobile and web)
+        broadcastOrderCompleted(order.id, order).catch(e => console.error('Error broadcasting order complete:', e));
+        broadcastNotification(order.userId, notif).catch(e => console.error('Error broadcasting notification:', e));
       }
     });
 

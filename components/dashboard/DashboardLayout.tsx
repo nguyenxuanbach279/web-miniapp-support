@@ -72,37 +72,65 @@ export const DashboardLayout: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Connect EventSource to SSE endpoint for real-time streaming notifications
-    const eventSource = new EventSource(`/api/notifications/sse?userId=${currentUser.id}`);
+    let eventSource: EventSource | null = null;
+    let isMounted = true;
 
-    eventSource.addEventListener('initial', (e: MessageEvent) => {
-      try {
-        const initialData = JSON.parse(e.data);
-        if (Array.isArray(initialData)) {
-          setNotifications(initialData);
-        }
-      } catch (err) {
-        console.error('Error parsing initial SSE notifications:', err);
+    const connectSSE = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (eventSource) {
+        eventSource.close();
       }
-    });
 
-    eventSource.addEventListener('new_notification', (e: MessageEvent) => {
-      try {
-        const newNotif = JSON.parse(e.data);
-        if (newNotif && newNotif.id) {
-          setNotifications(prev => [newNotif, ...prev]);
+      eventSource = new EventSource(`/api/notifications/sse?userId=${currentUser.id}`);
+
+      eventSource.addEventListener('initial', (e: MessageEvent) => {
+        try {
+          const initialData = JSON.parse(e.data);
+          if (Array.isArray(initialData) && isMounted) {
+            setNotifications(initialData);
+          }
+        } catch (err) {
+          console.error('Error parsing initial SSE notifications:', err);
         }
-      } catch (err) {
-        console.error('Error parsing new SSE notification:', err);
-      }
-    });
+      });
 
-    eventSource.onerror = (err) => {
-      console.warn('SSE notification connection error, reconnecting...', err);
+      eventSource.addEventListener('new_notification', (e: MessageEvent) => {
+        try {
+          const newNotif = JSON.parse(e.data);
+          if (newNotif && newNotif.id && isMounted) {
+            setNotifications(prev => [newNotif, ...prev]);
+          }
+        } catch (err) {
+          console.error('Error parsing new SSE notification:', err);
+        }
+      });
+
+      eventSource.onerror = () => {
+        // Closed gracefully after timeout or error
+      };
     };
 
+    connectSSE();
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      } else {
+        connectSSE();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      eventSource.close();
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [currentUser]);
 

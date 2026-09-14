@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readSSODB, writeSSODB, readOrdersDB, writeOrdersDB } from '@/lib/server-db';
 import { getUTC7Timestamp } from '@/lib/date-utils';
 import { SSOItem, Order } from '@/lib/types';
+import { broadcastNewOrder } from '@/lib/realtime';
 
 export async function GET() {
   try {
@@ -97,6 +98,9 @@ export async function POST(request: Request) {
       };
       ordersDb.orders.unshift(createdOrder);
       await writeOrdersDB(ordersDb);
+
+      // Broadcast new order to mobile apps
+      broadcastNewOrder(createdOrder).catch(err => console.error('Error broadcasting SSO order:', err));
     } catch (orderErr) {
       console.error('Error creating corresponding order for SSO registration:', orderErr);
     }
