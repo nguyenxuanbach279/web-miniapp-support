@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { readOrdersDB, writeOrdersDB, readNotificationsDB, writeNotificationsDB, readDB } from '@/lib/server-db';
 import { getUTC7Timestamp } from '@/lib/date-utils';
 import { UserNotification } from '@/lib/types';
-import { notificationEmitter } from '@/lib/event-bus';
+
 import { broadcastOrderCompleted, broadcastNotification } from '@/lib/realtime';
 
 export async function OPTIONS() {
@@ -96,11 +96,6 @@ export async function POST(request: Request) {
         };
         notifsDb.notifications.unshift(notif);
 
-        // Emit SSE real-time event
-        notificationEmitter.emit('notification', {
-          userId: order.userId,
-          notification: notif
-        });
 
         // Broadcast to Supabase Realtime (for mobile and web)
         broadcastOrderCompleted(order.id, order).catch(e => console.error('Error broadcasting order complete:', e));

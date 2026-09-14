@@ -69,57 +69,58 @@ export const DashboardLayout: React.FC = () => {
     document.title = t(titleKey);
   }, [activeTab, language, t]);
 
+  // Load initial notifications via one-time GET, then subscribe to Supabase Realtime
   useEffect(() => {
     if (!currentUser) return;
 
-    let eventSource: EventSource | null = null;
     let isMounted = true;
 
-    const connectSSE = () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      if (eventSource) {
-        eventSource.close();
+    // 1. Fetch initial notifications (single GET request, no SSE)
+    const fetchInitialNotifications = async () => {
+      try {
+        const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.notifications) && isMounted) {
+          setNotifications(data.notifications);
+        }
+      } catch (err) {
+        console.error('Error fetching initial notifications:', err);
       }
-
-      eventSource = new EventSource(`/api/notifications/sse?userId=${currentUser.id}`);
-
-      eventSource.addEventListener('initial', (e: MessageEvent) => {
-        try {
-          const initialData = JSON.parse(e.data);
-          if (Array.isArray(initialData) && isMounted) {
-            setNotifications(initialData);
-          }
-        } catch (err) {
-          console.error('Error parsing initial SSE notifications:', err);
-        }
-      });
-
-      eventSource.addEventListener('new_notification', (e: MessageEvent) => {
-        try {
-          const newNotif = JSON.parse(e.data);
-          if (newNotif && newNotif.id && isMounted) {
-            setNotifications(prev => [newNotif, ...prev]);
-          }
-        } catch (err) {
-          console.error('Error parsing new SSE notification:', err);
-        }
-      });
-
-      eventSource.onerror = () => {
-        // Closed gracefully after timeout or error
-      };
     };
 
-    connectSSE();
+    fetchInitialNotifications();
 
+    // 2. Subscribe to Supabase Realtime for new notifications (WebSocket, zero Vercel cost)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channel: any = null;
+
+    const setupRealtime = async () => {
+      const { getSupabaseBrowserClient } = await import('@/lib/supabase-client');
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+
+      channel = supabase.channel(`user_${currentUser.id}`);
+
+      channel
+        .on('broadcast', { event: 'new_notification' }, (payload: { payload?: { notification?: any } }) => {
+          const notif = payload.payload?.notification;
+          if (notif && notif.id && isMounted) {
+            setNotifications(prev => {
+              // Deduplicate by id
+              if (prev.some(n => n.id === notif.id)) return prev;
+              return [notif, ...prev];
+            });
+          }
+        })
+        .subscribe();
+    };
+
+    setupRealtime();
+
+    // 3. Refetch when tab becomes visible again (lightweight, single GET)
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
-      } else {
-        connectSSE();
+      if (!document.hidden) {
+        fetchInitialNotifications();
       }
     };
 
@@ -128,8 +129,8 @@ export const DashboardLayout: React.FC = () => {
     return () => {
       isMounted = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (eventSource) {
-        eventSource.close();
+      if (channel) {
+        channel.unsubscribe();
       }
     };
   }, [currentUser]);
